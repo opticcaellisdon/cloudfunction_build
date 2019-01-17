@@ -1,0 +1,14 @@
+{
+  "name": "builder-launcher",
+  "version": "1.0.0",
+  "description": "A cloud function that listen for GitHub events and launch cloud build builds",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "googleapis": "^36.0.0"
+  }
+}
