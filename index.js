@@ -7,9 +7,17 @@ exports.buildlauncher = async (req, res) => {
   });
   const projectId = await google.auth.getProjectId();
 
-  const previousBuilds = await cloudbuild.projects.builds.list({auth, projectId, pageSize: 5});
+  const requestBody = {
+    steps: [{
+        name: "gcr.io/cloud-builders/gsutil",
+        entrypoint: "bash",
+        args: ["-c", "echo 'simple build from cloud function'"]
+      }]
+  };
 
-  console.log(previousBuilds.data);
-  console.log(req.body);
+  const newOperation = await cloudbuild.projects.builds.create({
+    auth, projectId, requestBody });
+
+  console.log(newOperation.data.name);
   res.status(200).send('Hello world');
 }
