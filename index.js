@@ -7,9 +7,39 @@ exports.buildlauncher = async (req, res) => {
   });
   const projectId = await google.auth.getProjectId();
 
-  const previousBuilds = await cloudbuild.projects.builds.list({auth, projectId, pageSize: 5});
+  const event = req.get('X-GitHub-Event');
+  const repository = req.body.repository;
 
-  console.log(previousBuilds.data);
-  console.log(req.body);
+  if (event == "push") {
+    console.log("Push event");
+
+    const requestBody = {
+      steps: [
+        {
+          name: "gcr.io/cloud-builders/gsutil",
+          entrypoint: "bash",
+          args: ["-c", "echo 'simple build from cloud function'"]
+        },
+        {
+          name: "gcr.io/cloud-builders/git",
+          args: ["clone", `${repository.clone_url}`, '.']
+        },
+        {
+          name: "gcr.io/cloud-builders/git",
+          args: ["checkout", `${req.body.head_commit.id}`]
+        },
+        {
+          name: "gcr.io/cloud-builders/git",
+          args: ["log", "--oneline"]
+        }
+      ]
+    };
+
+    const newOperation = await cloudbuild.projects.builds.create({
+      auth, projectId, requestBody });
+
+    console.log(newOperation.data.name);
+  }
+
   res.status(200).send('Hello world');
 }
