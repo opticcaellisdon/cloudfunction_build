@@ -9,6 +9,10 @@
   "author": "",
   "license": "UNLICENSED",
   "dependencies": {
-    "googleapis": "^36.0.0"
+    "@google-cloud/storage": "^2.3.4",
+    "@octokit/rest": "^16.11.0",
+    "googleapis": "^36.0.0",
+    "js-yaml": "^3.12.1",
+    "lodash": "^4.17.11"
   }
 }

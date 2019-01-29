@@ -1,45 +1,37 @@
-const {google} = require('googleapis');
+'use strict';
+const { google } = require('googleapis');
 const cloudbuild = google.cloudbuild('v1');
+const helper = require('./helper.js');
+
+const BUCKET = "cloudbuild-files"
+const CLOUDBUILD_FILE = "cloudbuild.yaml";
 
 exports.buildlauncher = async (req, res) => {
-  const auth = await google.auth.getClient({
-    scopes: ['https://www.googleapis.com/auth/cloud-platform']
-  });
-  const projectId = await google.auth.getProjectId();
 
-  const event = req.get('X-GitHub-Event');
-  const repository = req.body.repository;
+  try { 
+    const auth = await google.auth.getClient({
+      scopes: ['https://www.googleapis.com/auth/cloud-platform']
+    });
+    const projectId = await google.auth.getProjectId();
+    const { repo_name, repo_url, commit, branch } = await helper.getData(req);
 
-  if (event == "push") {
-    console.log("Push event");
+    // Download cloudfile.yaml from a bucket
+    const cloudbuild_config = await helper.downloadConfigFile(projectId, BUCKET, repo_name, CLOUDBUILD_FILE);
 
-    const requestBody = {
-      steps: [
-        {
-          name: "gcr.io/cloud-builders/gsutil",
-          entrypoint: "bash",
-          args: ["-c", "echo 'simple build from cloud function'"]
-        },
-        {
-          name: "gcr.io/cloud-builders/git",
-          args: ["clone", `${repository.clone_url}`, '.']
-        },
-        {
-          name: "gcr.io/cloud-builders/git",
-          args: ["checkout", `${req.body.head_commit.id}`]
-        },
-        {
-          name: "gcr.io/cloud-builders/git",
-          args: ["log", "--oneline"]
-        }
-      ]
-    };
+    // Adding git clone and git checkout as first steps
+    cloudbuild_config.steps = helper.commonSteps(repo_url, commit).concat(cloudbuild_config.steps)
+
+    // Adding substitutions
+    cloudbuild_config.substitutions = helper.commonSubstitution(branch);
 
     const newOperation = await cloudbuild.projects.builds.create({
-      auth, projectId, requestBody });
+      auth, projectId, requestBody: cloudbuild_config });
 
     console.log(newOperation.data.name);
-  }
+
+    } catch (error) {
+      console.error(error);
+    }
 
   res.status(200).send('Hello world');
 }
